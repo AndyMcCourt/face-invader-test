@@ -1,0 +1,5 @@
+{
+  "name": "Face Invaders",
+  "description": "A classic space invaders style arcade game where you must defend against waves of descending alien faces. Move your ship, shoot down the invaders, and aim for a high score!",
+  "requestFramePermissions": []
+}
