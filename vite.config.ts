@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [react()],
-        base:"face-invader-test/",
+        base:"/face-invader-test/",
         server: { port: 3000, host: "0.0.0.0" },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
