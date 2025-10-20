@@ -1,5 +1,3 @@
-import enemyFace from "./profilephoto.png"
-
 // Game area dimensions
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 600;
@@ -27,4 +25,4 @@ export const ENEMY_SPEED = 1;
 export const ENEMY_VERTICAL_STEP = 20;
 export const ENEMY_SHOOT_PROBABILITY = 0.001; // Probability per enemy per frame
 
-export const ENEMY_FACE_URL = enemyFace;
+export const ENEMY_FACE_URL = 'https://media.licdn.com/dms/image/v2/C4E03AQEy3wmo1yOmHQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1524815911253?e=1762387200&v=beta&t=aBh5BMXbuFSIZdB7EtTIvD3D49nrNvAO1rjr2sUqoPU';
