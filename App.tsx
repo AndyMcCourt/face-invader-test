@@ -69,7 +69,7 @@ const Overlay: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 const StartScreen: React.FC<{ onStart: () => void }> = ({ onStart }) => (
   <Overlay>
-    <h1 className="text-6xl font-bold text-cyan-400 mb-4 animate-pulse">FACE INVADERS</h1>
+    <h1 className="text-6xl font-bold text-cyan-400 mb-4 animate-pulse">SPACE IAN-VADERS</h1>
     <p className="text-xl mb-8">Use Arrow Keys to Move, Spacebar to Shoot</p>
     <button
       onClick={onStart}
