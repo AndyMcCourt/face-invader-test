@@ -4,7 +4,7 @@ import {
   GAME_WIDTH, GAME_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT, PLAYER_START_Y, PLAYER_SPEED,
   PROJECTILE_WIDTH, PROJECTILE_HEIGHT, PLAYER_PROJECTILE_SPEED, ENEMY_PROJECTILE_SPEED,
   ENEMY_WIDTH, ENEMY_HEIGHT, ENEMY_GRID_ROWS, ENEMY_GRID_COLS, ENEMY_GRID_GAP,
-  ENEMY_SPEED, ENEMY_VERTICAL_STEP, ENEMY_SHOOT_PROBABILITY, PLAYER_LIVES, ENEMY_FACE_URL,
+  ENEMY_SPEED, ENEMY_VERTICAL_STEP, ENEMY_SHOOT_PROBABILITY, PLAYER_LIVES, ENEMY_LEVELS,
 } from './constants';
 import { GameStatus } from './types';
 import type { Position, GameObject } from './types';
@@ -29,9 +29,9 @@ const Player: React.FC<{ position: Position }> = React.memo(({ position }) => (
   </div>
 ));
 
-const Enemy: React.FC<{ position: Position }> = React.memo(({ position }) => (
+const Enemy: React.FC<{ position: Position; imageUrl: string }> = React.memo(({ position, imageUrl }) => (
   <img
-    src={ENEMY_FACE_URL}
+    src={imageUrl}
     alt="Enemy Invader"
     style={{ left: position.x, top: position.y, width: ENEMY_WIDTH, height: ENEMY_HEIGHT }}
     className="absolute rounded-md"
@@ -45,9 +45,10 @@ const Projectile: React.FC<{ position: Position; color: string }> = React.memo((
   ></div>
 ));
 
-const Hud: React.FC<{ score: number; lives: number }> = React.memo(({ score, lives }) => (
+const Hud: React.FC<{ score: number; lives: number; level: number }> = React.memo(({ score, lives, level }) => (
   <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center text-white font-mono z-10">
     <div>SCORE: {score.toString().padStart(5, '0')}</div>
+    <div>LEVEL: {level + 1}</div>
     <div className="flex items-center">
       <span>LIVES:</span>
       <div className="flex ml-2">
@@ -69,7 +70,7 @@ const Overlay: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 const StartScreen: React.FC<{ onStart: () => void }> = ({ onStart }) => (
   <Overlay>
-    <h1 className="text-6xl font-bold text-cyan-400 mb-4 animate-pulse">SPACE IAN-VADERS</h1>
+    <h1 className="text-6xl font-bold text-cyan-400 mb-4 animate-pulse">FACE INVADERS</h1>
     <p className="text-xl mb-8">Use Arrow Keys to Move, Spacebar to Shoot</p>
     <button
       onClick={onStart}
@@ -100,6 +101,7 @@ function App() {
   const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.Start);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(PLAYER_LIVES);
+  const [level, setLevel] = useState(0);
 
   const [playerPos, setPlayerPos] = useState<Position>({ x: GAME_WIDTH / 2 - PLAYER_WIDTH / 2, y: PLAYER_START_Y });
   const [playerProjectile, setPlayerProjectile] = useState<GameObject | null>(null);
@@ -111,10 +113,12 @@ function App() {
   const keysPressed = useRef<Set<string>>(new Set());
   const gameLoopId = useRef<number | null>(null);
 
-  const createEnemies = () => {
+  const createEnemies = useCallback(() => {
     const newEnemies: GameObject[] = [];
     const gridWidth = ENEMY_GRID_COLS * (ENEMY_WIDTH + ENEMY_GRID_GAP) - ENEMY_GRID_GAP;
     const startX = (GAME_WIDTH - gridWidth) / 2;
+    const enemyUrl = ENEMY_LEVELS[level % ENEMY_LEVELS.length];
+
     for (let row = 0; row < ENEMY_GRID_ROWS; row++) {
       for (let col = 0; col < ENEMY_GRID_COLS; col++) {
         newEnemies.push({
@@ -123,20 +127,21 @@ function App() {
           y: 50 + row * (ENEMY_HEIGHT + ENEMY_GRID_GAP),
           width: ENEMY_WIDTH,
           height: ENEMY_HEIGHT,
+          imageUrl: enemyUrl,
         });
       }
     }
     setEnemies(newEnemies);
-  };
+  }, [level]);
 
   const resetGame = useCallback(() => {
     setScore(0);
     setLives(PLAYER_LIVES);
     setPlayerPos({ x: GAME_WIDTH / 2 - PLAYER_WIDTH / 2, y: PLAYER_START_Y });
     setPlayerProjectile(null);
-    createEnemies();
     setEnemyProjectiles([]);
     setEnemyDirection('right');
+    setLevel(0);
     setGameStatus(GameStatus.Playing);
   }, []);
 
@@ -175,6 +180,13 @@ function App() {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [gameStatus, handleShoot, resetGame]);
+
+  useEffect(() => {
+    if (gameStatus === GameStatus.Playing) {
+      createEnemies();
+    }
+  }, [gameStatus, level, createEnemies]);
+
 
   const gameLoop = useCallback(() => {
     if (gameStatus !== GameStatus.Playing) return;
@@ -218,17 +230,20 @@ function App() {
         }
       }
 
+      const currentEnemySpeed = ENEMY_SPEED + level * 0.2;
+
       if (mustDropDown) {
         setEnemyDirection(newDirection);
         return prevEnemies.map(e => ({ ...e, y: e.y + ENEMY_VERTICAL_STEP }));
       } else {
-        const moveX = enemyDirection === 'right' ? ENEMY_SPEED : -ENEMY_SPEED;
+        const moveX = enemyDirection === 'right' ? currentEnemySpeed : -currentEnemySpeed;
         return prevEnemies.map(e => ({ ...e, x: e.x + moveX }));
       }
     });
     
     // Enemy shooting
-    if (enemies.length > 0 && Math.random() < ENEMY_SHOOT_PROBABILITY * enemies.length) {
+    const currentShootProb = ENEMY_SHOOT_PROBABILITY + level * 0.0002;
+    if (enemies.length > 0 && Math.random() < currentShootProb * enemies.length) {
         const shootingEnemy = enemies[Math.floor(Math.random() * enemies.length)];
         setEnemyProjectiles(prev => [...prev, {
             id: `e-proj-${Date.now()}`,
@@ -271,14 +286,13 @@ function App() {
     
     // Win condition
     if (enemies.length === 0 && gameStatus === GameStatus.Playing) {
-        // For simplicity, we just start a new, faster wave.
-        createEnemies();
         setScore(s => s + 100);
+        setLevel(l => l + 1);
     }
 
 
     gameLoopId.current = requestAnimationFrame(gameLoop);
-  }, [gameStatus, playerProjectile, enemies, enemyProjectiles, enemyDirection, playerPos]);
+  }, [gameStatus, playerProjectile, enemies, enemyProjectiles, enemyDirection, playerPos, level]);
 
 
   useEffect(() => {
@@ -303,9 +317,9 @@ function App() {
         
         {gameStatus === GameStatus.Playing && (
           <>
-            <Hud score={score} lives={lives} />
+            <Hud score={score} lives={lives} level={level}/>
             <Player position={playerPos} />
-            {enemies.map(enemy => <Enemy key={enemy.id} position={enemy} />)}
+            {enemies.map(enemy => <Enemy key={enemy.id} position={enemy} imageUrl={enemy.imageUrl!} />)}
             {playerProjectile && <Projectile position={playerProjectile} color="bg-cyan-400" />}
             {enemyProjectiles.map(proj => <Projectile key={proj.id} position={proj} color="bg-red-500" />)}
           </>
