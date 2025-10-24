@@ -8,6 +8,7 @@ export interface GameObject extends Position {
   id: string;
   width: number;
   height: number;
+  imageUrl?: string;
 }
 
 export enum GameStatus {
