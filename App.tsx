@@ -112,6 +112,8 @@ function App() {
   
   const keysPressed = useRef<Set<string>>(new Set());
   const gameLoopId = useRef<number | null>(null);
+  const prevEnemiesCountRef = useRef<number>(0);
+
 
   const createEnemies = useCallback(() => {
     const newEnemies: GameObject[] = [];
@@ -186,6 +188,21 @@ function App() {
       createEnemies();
     }
   }, [gameStatus, level, createEnemies]);
+
+  // Effect for handling level progression when all enemies are defeated
+  useEffect(() => {
+    const prevEnemiesCount = prevEnemiesCountRef.current;
+    if (
+      gameStatus === GameStatus.Playing &&
+      enemies.length === 0 &&
+      prevEnemiesCount > 0
+    ) {
+      // All enemies have been cleared, advance to the next level
+      setScore((s) => s + 100);
+      setLevel((l) => l + 1);
+    }
+    prevEnemiesCountRef.current = enemies.length;
+  }, [enemies, gameStatus]);
 
 
   const gameLoop = useCallback(() => {
@@ -283,13 +300,6 @@ function App() {
     if (enemies.some(e => e.y + ENEMY_HEIGHT >= PLAYER_START_Y)) {
         setGameStatus(GameStatus.GameOver);
     }
-    
-    // Win condition
-    if (enemies.length === 0 && gameStatus === GameStatus.Playing) {
-        setScore(s => s + 100);
-        setLevel(l => l + 1);
-    }
-
 
     gameLoopId.current = requestAnimationFrame(gameLoop);
   }, [gameStatus, playerProjectile, enemies, enemyProjectiles, enemyDirection, playerPos, level]);
