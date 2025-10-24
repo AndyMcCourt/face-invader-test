@@ -1,3 +1,4 @@
+html, body, #root { height: 100%; margin: 0; background: #000; }
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -114,6 +115,21 @@ function App() {
   const gameLoopId = useRef<number | null>(null);
   const prevEnemiesCountRef = useRef<number>(0);
 
+ const [scale, setScale] = useState(1);
+
+  const updateScale = useCallback(() => {
+    const s = Math.min(
+      window.innerWidth / GAME_WIDTH,
+      window.innerHeight / GAME_HEIGHT
+    );
+    setScale(s);
+  }, []);
+
+  useEffect(() => {
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [updateScale]);
 
   const createEnemies = useCallback(() => {
     const newEnemies: GameObject[] = [];
@@ -317,21 +333,34 @@ function App() {
   }, [gameStatus, gameLoop]);
 
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="fixed inset-0 flex items-center justify-center bg-black">
       <div
-        style={{ width: GAME_WIDTH, height: GAME_HEIGHT }}
-        className="relative bg-black overflow-hidden border-4 border-cyan-700 shadow-lg shadow-cyan-500/50"
+        style={{
+          width: GAME_WIDTH,
+          height: GAME_HEIGHT,
+          transform: `scale(${scale})`,
+          transformOrigin: 'center',
+        }}
+        className="relative overflow-hidden border-4 border-cyan-700 shadow-lg shadow-cyan-500/50"
       >
         {gameStatus === GameStatus.Start && <StartScreen onStart={resetGame} />}
-        {gameStatus === GameStatus.GameOver && <GameOverScreen score={score} onRestart={resetGame} />}
-        
+        {gameStatus === GameStatus.GameOver && (
+          <GameOverScreen score={score} onRestart={resetGame} />
+        )}
+
         {gameStatus === GameStatus.Playing && (
           <>
-            <Hud score={score} lives={lives} level={level}/>
+            <Hud score={score} lives={lives} level={level} />
             <Player position={playerPos} />
-            {enemies.map(enemy => <Enemy key={enemy.id} position={enemy} imageUrl={enemy.imageUrl!} />)}
-            {playerProjectile && <Projectile position={playerProjectile} color="bg-cyan-400" />}
-            {enemyProjectiles.map(proj => <Projectile key={proj.id} position={proj} color="bg-red-500" />)}
+            {enemies.map((enemy) => (
+              <Enemy key={enemy.id} position={enemy} imageUrl={enemy.imageUrl!} />
+            ))}
+            {playerProjectile && (
+              <Projectile position={playerProjectile} color="bg-cyan-400" />
+            )}
+            {enemyProjectiles.map((proj) => (
+              <Projectile key={proj.id} position={proj} color="bg-red-500" />
+            ))}
           </>
         )}
       </div>
